@@ -284,8 +284,7 @@ async function fechar_dm(dm) {
 }
 
 function pegar_status() {
-  const data = fs.readFileSync('config.json');
-  return JSON.parse(data).ativado;
+  return require('./config.json').ativado;
 }
 
 function atualizar_status(arg) {
