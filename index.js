@@ -6,14 +6,13 @@ const axios = require('axios');
 const fs = require('fs');
 const inquirer = require('inquirer');
 
-process.title = '147 Multi-tool | by byy#0001'
+process.title = '147 Multi-tool | by brunno#0001'
 
 const per = require('readline').createInterface({
   input: process.stdin
   , output: process.stdout
 });
 
-//inicia o client
 client.on('ready', async () => {
   async function loop() {
     console.clear()
@@ -27,10 +26,10 @@ client.on('ready', async () => {
         return;
       }
       console.log(colors.red(data));
-      console.log(colors.red('         feito por brunno#0375\n\n'))
+      console.log(colors.red('         feito por brunno#0001\n\n'))
 
       const options = [{
-        name: '[+] Abrir todas as DMs e apagar'
+        name: '[+] Abrir todas as DMs e apagar (amigos)'
         , value: 'opção_1'
       }, {
         name: '[+] Apagar mensagens das DMs abertas'
@@ -45,7 +44,7 @@ client.on('ready', async () => {
         name: '[+] Remover pedidos de amizade'
         , value: 'opção_5'
       }, {
-        name: '[+] Apagar mensagens com todos (package)'
+        name: '[+] Mover/desconectar todos de um canal de voz'
         , value: 'opção_6'
       }, {
         name: '[+] Anti-DM'
@@ -101,7 +100,7 @@ client.on('ready', async () => {
             let nome;
             let canal = client.channels.cache.get(usr)
             if (!canal) {
-              var usr = await client.users.fetch(usr).catch(e => {
+              var usr = await client.users.fetch(usr).catch(() => {
                 console.log(colors.red('[x] Não consegui ver a dm com esse usuário'))
               })
               await usr.createDM().then(dmchannel => {
@@ -135,22 +134,24 @@ client.on('ready', async () => {
             console.clear()
             let contador = 1;
             let nome;
-            let canal = client.channels.cache.get(answers.option)
+            var id = answers.option
+            let canal = await client.channels.cache.get(id);
             if (!canal) {
-              var usr = await client.users.fetch(answers.option).catch(e => {
-                console.log(colors.red('[x] Não consegui ver a dm com esse usuário'))
-              })
-              await usr.createDM().then(dmchannel => {
+              var usr = await client.users.fetch(id).catch(err => { })
+              if (!usr) return console.log(colors.red('[x] O id fornecido é inválido')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`)
+
+              await usr?.createDM().then(dmchannel => {
                 id = dmchannel.id
                 nome = usr.username
               }).catch(e => {
                 console.log(colors.red('[x] Não consegui ver a dm com esse usuário'))
               })
             } else {
-              nome = (canal.type == "GROUP_DM") ? "DM" : canal.name
+              if (canal?.recipient?.username) { canal = (canal.type == "GROUP_DM") ? "DM" : canal.recipient.username } else { canal = canal = (canal.type == "GROUP_DM") ? "DM" : canal.name }
             }
+
             var todas_msg = await fetch_msgs(id)
-            if (!todas_msg.length) console.log(colors.red(`[x] Sem mensagens na dm com o usuário ${nome}`)), await fechar_dm(id)
+            if (todas_msg.length === 0) return console.log(colors.red(`[x] Sem mensagens na dm com o usuário ${nome}`)), await fechar_dm(id), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`)
             for (var nuts of todas_msg) {
               await new Promise(resolve => setTimeout(resolve, 1000))
               await nuts.delete().then(kk => {
@@ -159,6 +160,7 @@ client.on('ready', async () => {
                 contador++
               }).catch((e) => { console.log(e) })
             }
+
             await fechar_dm(id)
             esperarkk(`\n\n[!] terminei de limpar todas as dms, voltando para o inicio, aguarde 5 segundos...`)
           })
@@ -201,7 +203,154 @@ client.on('ready', async () => {
           }
           esperarkk(`\n\n[!] terminei de remover os pedidos de amizade...`)
         } else if (option == 'opção_6') {
-          esperarkk('[!] apenas para desenvolvedores kkk')
+
+
+
+
+          console.clear();
+
+          const { option } = await inquirer.prompt([
+            {
+              type: 'list',
+              name: 'option',
+              message: 'Você deseja desconectar ou mover todo mundo da call?',
+              choices: ['Desconectar', 'Mover'],
+            }
+          ]);
+          console.clear();
+
+          switch (option) {
+            case 'Mover':
+              const { channel: disconnectChannelId } = await inquirer.prompt([
+                {
+                  type: 'input',
+                  name: 'channel',
+                  message: 'Digite o id da call que os membros estão:',
+                }
+              ]);
+              console.clear();
+
+              const { channel: moveChannelId } = await inquirer.prompt([
+                {
+                  type: 'input',
+                  name: 'channel',
+                  message: 'Digite o id da call que os membros vão ser movidos:',
+                }
+              ]);
+
+              console.clear();
+
+              const { confirm } = await inquirer.prompt([
+                {
+                  type: 'confirm',
+                  name: 'confirm',
+                  message: 'Tem certeza que deseja fazer isso? (y = sim, n = não)',
+                }
+              ]);
+
+              if (!confirm) return esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+
+              const disconnectChannel = client.channels.cache.get(disconnectChannelId);
+              const moveChannel = client.channels.cache.get(moveChannelId);
+
+              if (!disconnectChannel || !moveChannel || disconnectChannel.type !== 'GUILD_VOICE' || moveChannel.type !== 'GUILD_VOICE') {
+                return console.log(colors.red('[x] ID inválido')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+              }
+
+              if (disconnectChannel.members.size === 0) {
+                return console.log(colors.red('[x] A call está vazia')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+              }
+
+
+              const members = disconnectChannel.members.map(member => member);
+              for (const member of members) {
+
+                const user = client.users.cache.get(member);
+
+                const interval = setInterval(async () => {
+                  if (moveChannel.locked || moveChannel.full) {
+                    console.log(colors.red('[x] A call está privada ou lotada')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+                    clearInterval(interval);
+                    return;
+                  }
+
+                  try {
+                    await disconnectChannel.members.get(member.id).voice.setChannel(moveChannel.id);
+                  } catch (err) {
+                    if (err.message === "Missing Permissions") {
+                      console.clear()
+                      console.log(colors.red('[x] Você não tem permissão')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+                    } else {
+                    }
+                    clearInterval(interval);
+                    return;
+                  }
+                  if (member.id !== client.user.id) { console.log(colors.green(`[+] ${member.user.username} movido para o canal ${moveChannel.name}`)) };
+                  clearInterval(interval);
+
+                }, 500);
+              }
+
+              break;
+
+            case 'Desconectar':
+              const { channel: moveChannelId2 } = await inquirer.prompt([
+                {
+                  type: 'input',
+                  name: 'channel',
+                  message: 'Digite o id da call que você deseja desconectar todos os usuários:',
+                }
+              ]);
+
+              console.clear();
+
+              const { confirm: confirm2 } = await inquirer.prompt([
+                {
+                  type: 'confirm',
+                  name: 'confirm',
+                  message: 'Tem certeza que deseja fazer isso? (y = sim, n = não)',
+                }
+              ]);
+
+              if (!confirm2) return esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`)
+
+              const moveChannel2 = client.channels.cache.get(moveChannelId2);
+
+              if (!moveChannel2 || moveChannel2.type !== 'GUILD_VOICE') {
+                return console.log(colors.red('[x] ID inválido')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+              }
+
+              if (moveChannel2.members.size === 0) {
+                return console.log(colors.red('[x] call vazia')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+              }
+              const members2 = moveChannel2.members.map(member => member);
+
+              for (const member of members2) {
+                const user = client.users.cache.get(member.id);
+                try {
+                  await moveChannel2.members.get(member.id).voice.setChannel(null);
+                  console.log(colors.green(`[+] Desconectando ${user.tag} da call ${moveChannel2.name}`));
+                } catch (err) {
+                  if (err.message === "Missing Permissions") {
+                    console.log(colors.red('[x] Você não tem permissão')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`);
+                  } else {
+                  }
+                  return;
+                }
+
+              }
+
+              esperarkk(`\n\n[!] desconectados, voltando ao inicio, aguarde 5 segundos...`)
+              break;
+
+            default:
+              esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`)
+          }
+
+
+
+
+
         } else if (option == "opção_7") {
           await menu7()
         }
@@ -209,31 +358,38 @@ client.on('ready', async () => {
     })
   }
   return loop()
-
-  //funções 
   async function menu7() {
     const { selectedOption } = await inquirer.prompt([
       {
         type: 'list',
         name: 'selectedOption',
         message: 'Escolha uma opção',
-        choices: ['Ligar/Desligar', 'Voltar ao menu'],
+        choices: ['Ligar', 'Desligar', 'Voltar ao menu'],
       },
     ]);
 
-    if (selectedOption === 'Ligar/Desligar') {
-      const ativado = !pegar_status();
-      atualizar_status(ativado);
-      console.clear();
-      console.log(`Status do Anti-DM: ${ativado ? '\x1b[32m[ON]\x1b[0m' : '\x1b[31m[OFF]\x1b[0m'}`);
-      await menu7();
-    } else if (selectedOption === 'Voltar ao menu') {
-      return console.clear(), esperarkk('');
+    const config = require('./config.json');
+    let ativado = config.ativado !== false;
+
+    if (selectedOption === 'Ligar') {
+      ativado = true;
+    } else if (selectedOption === 'Desligar') {
+      ativado = false;
     } else {
-      return console.clear(), esperarkk('');
+      console.clear();
+      return esperarkk('');
     }
+
+    config.ativado = ativado;
+    fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+
+    console.clear();
+    console.log(`Status do Anti-DM: ${ativado ? '\x1b[32m[ON]\x1b[0m' : '\x1b[31m[OFF]\x1b[0m'}`);
+
+    await menu7();
   }
-  //função para retornar ao menu
+
+
   function esperarkk(fofokk) {
     console.log(fofokk);
     setTimeout(function () {
@@ -244,23 +400,24 @@ client.on('ready', async () => {
 
 async function fetch_msgs(canal) {
   const canall = client.channels.cache.get(canal);
+  if (!canall) return [];
   let ultimoid;
   let messages = [];
 
   while (true) {
-    const fetch_mensagens = await canall.messages.fetch({
+    const fetched = await canall.messages.fetch({
       limit: 100,
       ...(ultimoid && { before: ultimoid }),
     });
 
-    if (fetch_mensagens.size === 0) {
+    if (fetched.size === 0) {
       return messages.filter(msg => msg.author.id == client.user.id && !msg.author.system && !msg.system);
     }
-
-    messages = messages.concat(Array.from(fetch_mensagens.values()));
-    ultimoid = fetch_mensagens.lastKey();
+    messages = messages.concat(Array.from(fetched.values()));
+    ultimoid = fetched.lastKey();
   }
 }
+
 
 async function pegar_amigos() {
   await new Promise(resolve => setTimeout(resolve, 2000));
@@ -287,11 +444,6 @@ function pegar_status() {
   return require('./config.json').ativado;
 }
 
-function atualizar_status(arg) {
-  const stat = { ativado: Boolean(arg), token: client.token };
-  fs.writeFileSync('config.json', JSON.stringify(stat, null, 2));
-}
-//evento para detectar a dm
 client.on('channelCreate', async (channel) => {
   if (!pegar_status()) return;
 
@@ -300,4 +452,18 @@ client.on('channelCreate', async (channel) => {
   }
 });
 
-client.login(require('./config.json').token);
+client.login(require('./config.json').token).catch(() => {
+  console.clear();
+  inquirer.prompt([{
+    type: 'message',
+    name: 'option',
+    message: `${colors.red("[!]")} Token inválida, insira uma token:`,
+  }]).then(async token => {
+    console.clear();
+    await client.login(token.option).then(() => {
+      fs.writeFileSync('config.json', JSON.stringify({ ativado: false, token: client.token }, null, 2))
+    }).catch(() => {
+      process.exit()
+    })
+  })
+})
