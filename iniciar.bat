@@ -7,3 +7,4 @@ if exist "node_modules" (
     echo Dependências instaladas. Iniciando...
     node .
 )
+pause
