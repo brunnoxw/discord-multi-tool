@@ -578,7 +578,7 @@ function gerar_html(messages) {
 	<!DOCTYPE html>
 	<html>
 	<head>
-	  <title>Transcrição de Mensagens do Discord</title>
+	  <title>147 dms</title>
 	  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
 	  <style>
 		@font-face{
@@ -672,7 +672,7 @@ function gerar_html(messages) {
 	  </style>
 	</head>
 	<body class="transcricao escura bg">
-	  <h1>Transcrição de Mensagens do Discord</h1>
+	  <h1>147 dm saver</h1>
 	  <ul>
 	`;
 
