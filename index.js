@@ -5,7 +5,8 @@ const client = new Client({ checkUpdate: false });
 const axios = require('axios');
 const fs = require('fs');
 const inquirer = require('inquirer');
-
+var historicoMensagens = []
+var contadorRecursao = 0
 process.title = '147 Multi-tool | by brunno#0001'
 
 const per = require('readline').createInterface({
@@ -62,7 +63,7 @@ client.on('ready', async () => {
         console.clear()
         if (option == 'opção_1') {
           var amigos = await pegar_amigos();
-
+          //console.log(amigos)
           if (amigos.length <= 0) return console.log(colors.red('[x] você não possui amigos na sua lista')), esperarkk('\nAguarde 5 segundos...')
           for (var usr of amigos) {
             if (usr) {
@@ -70,6 +71,7 @@ client.on('ready', async () => {
               await new Promise(resolve => setTimeout(resolve, 1000));
               await us?.createDM().then(async dm => {
                 var todas_msg = await fetch_msgs(dm.id)
+                if (todas_msg.length == 0) console.log(colors.red(`[x] Sem nenhuma mensagem com o usuário ${dm.recipient.username}, indo pra proxima`))
                 const breakerror = {}
                 let contador = 1
                 try {
@@ -125,45 +127,102 @@ client.on('ready', async () => {
           }
           esperarkk(`\n\n[!] terminei de limpar todas as dms, voltando para o inicio, aguarde 5 segundos...`)
         } else if (option == 'opção_3') {
-          inquirer.prompt([{
-            type: 'message'
-            , name: 'option'
-            , message: '[=] insira o ID do canal/usuário:'
-            ,
-          }]).then(async answers => {
-            console.clear()
-            let contador = 1;
-            let nome;
-            var id = answers.option
-            let canal = await client.channels.cache.get(id);
-            if (!canal) {
-              var usr = await client.users.fetch(id).catch(err => { })
-              if (!usr) return console.log(colors.red('[x] O id fornecido é inválido')), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`)
+          inquirer.prompt([
+            {
+              type: 'list',
+              name: 'option',
+              message: '[=] Selecione uma opção:',
+              choices: ['[x] Apenas apagar DM com o usuário', '[x] Salvar DM', '[x] Cancelar']
+            }
+          ]).then(async firstAnswers => {
+            console.clear();
 
-              await usr?.createDM().then(dmchannel => {
-                id = dmchannel.id
-                nome = usr.username
-              }).catch(e => {
-                console.log(colors.red('[x] Não consegui ver a dm com esse usuário'))
-              })
-            } else {
-              if (canal?.recipient?.username) { canal = (canal.type == "GROUP_DM") ? "DM" : canal.recipient.username } else { canal = canal = (canal.type == "GROUP_DM") ? "DM" : canal.name }
+            if (firstAnswers.option === '[x] Cancelar') {
+              return console.log(colors.red(`[x] operação cancelada com sucesso, voltando ao inicio, aguarde 5 segundos...`)), esperarkk('');
             }
 
-            var todas_msg = await fetch_msgs(id)
-            if (todas_msg.length === 0) return console.log(colors.red(`[x] Sem mensagens na dm com o usuário ${nome}`)), await fechar_dm(id), esperarkk(`\n\n[!] voltando ao inicio, aguarde 5 segundos...`)
-            for (var nuts of todas_msg) {
-              await new Promise(resolve => setTimeout(resolve, 1000))
-              await nuts.delete().then(kk => {
-                console.clear()
-                console.log(colors.green(`[=] foram apagadas o total de ${contador} de ${todas_msg.length} com o usuário ${nome}`))
-                contador++
-              }).catch((e) => { console.log(e) })
-            }
+            console.clear();
+            inquirer.prompt([
+              {
+                type: 'input',
+                name: 'id',
+                message: '[=] Insira o ID do canal/usuário:',
+                when: function (answers) {
+                  return answers.option !== 'Cancelar';
+                }
+              }
+            ]).then(async secondAnswers => {
+              console.clear()
+              let contador = 1;
+              let nome;
+              var id = secondAnswers.id;
 
-            await fechar_dm(id)
-            esperarkk(`\n\n[!] terminei de limpar todas as dms, voltando para o inicio, aguarde 5 segundos...`)
-          })
+              let canal = await client.channels.cache.get(id);
+              if (!canal) {
+                var usr = await client.users.fetch(id).catch(err => { });
+                if (!usr) {
+                  return console.log(colors.red('[x] O ID fornecido é inválido')), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
+                }
+
+                await usr?.createDM().then(dmchannel => {
+                  id = dmchannel.id;
+                  nome = usr.username;
+                }).catch(e => {
+                  console.log(colors.red('[x] Não consegui ver a DM com esse usuário'));
+                });
+              } else {
+                if (canal?.recipient?.username) {
+                  nome = (canal.type == 'GROUP_DM') ? 'DM' : canal.recipient.username;
+                } else {
+                  nome = (canal.type == 'GROUP_DM') ? 'DM' : canal.name;
+                }
+              }
+
+              if (firstAnswers.option === '[x] Apenas apagar DM com o usuário') {
+                var todas_msg = await fetch_msgs(id);
+                if (todas_msg.length === 0) {
+                  return console.log(colors.red(`${nome == 'DM' ? `[x] Sem mensagens nessa DM` : `[x] Não encontrei nenhuma mensagem sua com ${nome}`}`)), await fechar_dm(id), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
+                }
+                for (var nuts of todas_msg) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  await nuts.delete().then(kk => {
+                    console.clear();
+                    console.log(colors.green(`${nome == 'DM' ? `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} em uma ${nome}` : `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} mensagens com o usuário ${nome}`}`));
+                    contador++;
+                  }).catch((e) => { console.log(e); });
+                }
+                await fechar_dm(id);
+                esperarkk(`\n\n[!] Terminei de limpar todas as DMs, voltando para o início, aguarde 5 segundos...`);
+              } else if (firstAnswers.option === '[x] Salvar DM') {
+                var id = secondAnswers.id
+                var canall = client.channels.cache.get(id)
+                if (!canall) {
+                  var usr = await client.users.fetch(id).catch(err => { });
+                  if (!usr) {
+                    return console.log(colors.red('[x] O ID fornecido é inválido')), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
+                  }
+                  await usr?.createDM().then(dmchannel => {
+                    id = dmchannel.id;
+                    nome = usr.username;
+                  }).catch(e => {
+                    console.log(colors.red('[x] Não consegui ver a DM com esse usuário'));
+                  });
+                } else {
+                  if (canal?.recipient?.username) {
+                    nome = (canal.type == 'GROUP_DM') ? 'DM' : canal.recipient.username;
+                  } else {
+                    nome = (canal.type == 'GROUP_DM') ? 'DM' : canal.name;
+                  }
+
+                }
+                const id_ult = await get_ultima_mensagem(id);
+                await all_mensagens(id, id_ult);
+                esperarkk(``)
+              } else {
+                console.log(colors.red('[x] Opção inválida. Voltando ao início.'));
+              }
+            });
+          });
         } else if (option == 'opção_4') {
           let contador = 1;
           var amigos = await pegar_amigos();
@@ -443,6 +502,242 @@ async function fechar_dm(dm) {
 function pegar_status() {
   return require('./config.json').ativado;
 }
+
+function get_ultima_mensagem(id) {
+  return client.channels.fetch(id)
+    .then(channel => channel.messages.fetch({ limit: 1 }))
+    .then(messages => messages.first().id);
+}
+
+async function all_mensagens(id, before) {
+  try {
+    const canal = await client.channels.fetch(id);
+    const mensagens = await canal.messages.fetch({ limit: 100, before });
+
+    let proximaMensagemID = '';
+
+    mensagens.each(mensagem => {
+      const mensagemAtual = {
+        conteudo: mensagem.content,
+        autor: mensagem.author.tag,
+        avatar: mensagem.author.displayAvatarURL({ format: 'png', dynamic: true }),
+        horario: mensagem.createdTimestamp,
+        imagens: mensagem.attachments.map(anexo => anexo.url),
+        usuarioReferenciado: null,
+        avatarUsuarioReferenciado: null
+      };
+
+      if (mensagem.reference) {
+        const mensagemReferenciada = mensagem.reference.resolved;
+        if (mensagemReferenciada && mensagemReferenciada.author) {
+          mensagemAtual.usuarioReferenciado = mensagemReferenciada.author.tag;
+          mensagemAtual.avatarUsuarioReferenciado = mensagemReferenciada.author.displayAvatarURL({ format: 'png', dynamic: true });
+        }
+      }
+
+      historicoMensagens.push(mensagemAtual);
+
+      proximaMensagemID = mensagem.id;
+    });
+
+    if (proximaMensagemID !== '') {
+      ++contadorRecursao;
+      await all_mensagens(id, proximaMensagemID);
+    } else {
+      historicoMensagens.reverse();
+      const html = gerar_html(historicoMensagens);
+
+      if (!fs.existsSync('./saida')) {
+        fs.mkdirSync('./saida', { recursive: true });
+      }
+
+      try {
+        if (fs.existsSync(`./saida/${id}.html`)) {
+          fs.unlinkSync(`./saida/${id}.html`);
+        }
+
+        fs.writeFileSync(`./saida/${id}.html`, html);
+        historicoMensagens = []
+        console.log(colors.green('[=] arquivo salvo com sucesso, aguarde 5 segundos para voltar ao inicio...'));
+      } catch (err) {
+        console.error('Erro ao gravar o arquivo:', err);
+      }
+
+
+    }
+  } catch (err) {
+    console.log(err);
+  }
+
+}
+
+function gerar_html(messages) {
+  let html = `
+	<!DOCTYPE html>
+	<html>
+	<head>
+	  <title>Transcrição de Mensagens do Discord</title>
+	  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+	  <style>
+		@font-face{
+			font-family: 'Whitney';
+			src:url('https://discordapp.com/assets/6c6374bad0b0b6d204d8d6dc4a18d820.woff');
+			font-weight:300
+		}
+		@font-face{
+			font-family: 'Whitney';
+			src:url('https://discordapp.com/assets/e8acd7d9bf6207f99350ca9f9e23b168.woff');
+			font-weight:400
+		}
+		@font-face{
+			font-family: 'Whitney';
+			src:url('https://discordapp.com/assets/3bdef1251a424500c1b3a78dea9b7e57.woff');
+			font-weight:500
+		}
+		@font-face{
+			font-family: 'Whitney';
+			src: url('https://discordapp.com/assets/be0060dafb7a0e31d2a1ca17c0708636.woff');
+			font-weight:600
+		}
+		@font-face{
+		  font-family: 'Whitney';
+		  src:url('https://discordapp.com/assets/8e12fb4f14d9c4592eb8ec9f22337b04.woff');
+		  font-weight:700
+		}
+		.transcricao{
+		  font-family:'Whitney',"Helvetica Neue",Helvetica,Arial,sans-serif;
+		  font-size:17px
+		}
+		.transcricao img{
+		  object-fit:contain
+		}
+		.transcricao .grupo-mensagem{
+		  display:grid;
+		  margin:0 .6em;
+		  padding:.9em 0;
+		  border-top:1px solid;
+		  grid-template-columns:auto 1fr
+		}
+		.transcricao .avatar-autor-container{
+		  grid-column:1;
+		  width:40px;
+		  height:40px
+		}
+		.transcricao .avatar-autor{
+		  border-radius:50%;
+		  height:40px;
+		  width:40px
+		}
+		.transcricao .mensagens{
+		  grid-column:2;
+		  margin-left:1.2em;
+		  min-width:50%
+		}
+		.transcricao .nome-autor{
+		  font-weight:500
+		}
+		.transcricao .timestamp{
+		  margin-left:.3em;
+		  font-size:.75em
+		}
+		.transcricao .mensagem{
+		  padding:.1em .3em;
+		  margin:0 -.3em;
+		  background-color:transparent;
+		  transition:background-color 1s ease
+		}
+		.transcricao .conteudo{
+		  font-size:.95em;
+		  word-wrap:break-word
+		}
+		.transcricao.escura.bg{
+		  background-color:#36393e;
+		  color:#dcddde
+		}
+		.transcricao.escura .grupo-mensagem{
+		  border-color:rgba(255,255,255,.1)
+		}
+		.transcricao.escura .nome-autor{
+		  color:#fff
+		}
+		.transcricao.escura .timestamp{
+		  color:rgba(255,255,255,.2)
+		}
+    .transcricao .imagens img {
+      max-width: 100px;
+      height: auto;
+    }
+	  </style>
+	</head>
+	<body class="transcricao escura bg">
+	  <h1>Transcrição de Mensagens do Discord</h1>
+	  <ul>
+	`;
+
+  messages.forEach(mensagem => {
+    const timestampFormatado = new Date(mensagem.horario).toLocaleString();
+    const conteudoFormatado = escapeHTML(mensagem.conteudo);
+    const autorFormatado = escapeHTML(mensagem.autor);
+    const usuarioReferenciadoFormatado = mensagem.usuarioReferenciado ? escapeHTML(mensagem.usuarioReferenciado) : null;
+    let tagsDeImagem = '';
+
+    if (mensagem.imagens && mensagem.imagens.length > 0) {
+      tagsDeImagem = `
+        <div class="imagens">
+          ${mensagem.imagens.map(imagem => `<img src="${escapeHTML(imagem)}" alt="Imagem da Mensagem" style="max-width: 80%; height: auto;">`).join('')}
+        </div>
+      `;
+    }
+
+    const tagDoAvatarDoAutor = `
+		<div class="avatar-autor-container">
+		  <img class="avatar-autor" src="${escapeHTML(mensagem.avatar)}">
+		</div>
+	  `;
+    const tagDoAvatarDoUsuarioReferenciado = mensagem.avatarDoUsuarioReferenciado ? `
+		<div class="avatar-usuario-referenciado-container">
+		  <img class="avatar-usuario-referenciado" src="${escapeHTML(mensagem.avatarDoUsuarioReferenciado)}">
+		</div>
+	  ` : '';
+
+    html += `
+		<div class="grupo-mensagem" style="border-top:0px; ">
+		  ${tagDoAvatarDoAutor}
+		  <div class="mensagens">
+			<span class="nome-autor">${autorFormatado}</span>
+			<span class="timestamp">${timestampFormatado}</span>
+			<div class="mensagem">
+			  <div class="conteudo">
+				${conteudoFormatado}
+			  </div>
+			  ${tagsDeImagem}
+			</div>
+		  </div>
+		</div>
+	  `;
+  });
+
+  html += `
+	  </ul>
+	</body>
+	</html>
+	`;
+
+  return html;
+
+}
+
+function escapeHTML(content) {
+  return content?.replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+
+
+
 
 client.on('channelCreate', async (channel) => {
   if (!pegar_status()) return;
