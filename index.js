@@ -5,6 +5,7 @@ const client = new Client({ checkUpdate: false });
 const axios = require('axios');
 const fs = require('fs');
 const inquirer = require('inquirer');
+const open = require('open')
 var historicoMensagens = []
 var contadorRecursao = 0
 process.title = '147 Multi-tool | by brunno#0001'
@@ -558,6 +559,7 @@ async function all_mensagens(id, before) {
 
         fs.writeFileSync(`./saida/${id}.html`, html);
         historicoMensagens = []
+        open(`./saida/${id}.html`);
         console.log(colors.green('[=] arquivo salvo com sucesso, aguarde 5 segundos para voltar ao inicio...'));
       } catch (err) {
         console.error('Erro ao gravar o arquivo:', err);
