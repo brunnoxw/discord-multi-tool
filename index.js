@@ -8,7 +8,7 @@ const inquirer = require('inquirer');
 const open = require('open')
 var historicoMensagens = []
 var contadorRecursao = 0
-process.title = '147 Multi-tool | by brunno#0001'
+process.title = '147 Multi-tool | by byy'
 
 const per = require('readline').createInterface({
   input: process.stdin
@@ -28,7 +28,7 @@ client.on('ready', async () => {
         return;
       }
       console.log(colors.red(data));
-      console.log(colors.red('         feito por brunno#0001\n\n'))
+      console.log(colors.red('         feito por byy\n\n'))
 
       const options = [{
         name: '[+] Abrir todas as DMs e apagar (amigos)'
