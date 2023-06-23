@@ -41,4 +41,4 @@ Contribuições e sugestões são sempre bem-vindas! Sinta-se à vontade para en
 
 É necessário baixar uma música, renomeá-la para "musica.mp3" e adicioná-la ao diretório "public/musica/" para que o bot possa reproduzi-la corretamente.
 
-![Exemplo do Bot]([https://i.imgur.com/ZOshG65.png](https://i.imgur.com/HDY5fWX.png)https://i.imgur.com/HDY5fWX.png)
+![Exemplo do Bot](https://i.imgur.com/HDY5fWX.png)
