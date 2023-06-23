@@ -1,44 +1,56 @@
-## Projeto do Bot do Discord
+## Bot do Discord Multiuso
 
-Este é um projeto de um bot do Discord que utiliza a biblioteca `discord.js` para se conectar ao Discord e realizar várias funcionalidades. 
+Este é um exemplo de código para um bot do Discord multiuso que usa a biblioteca `discord.js-selfbot-v13` para se conectar ao Discord com uma conta de usuário. Algumas das funcionalidades incluem:
 
-### Pré-requisitos
+- Limpar as mensagens de um usuário ou canal
+- Remover amigos e pedidos de amizade
+- Anti-DM para sair assim que te adicionarem na dm.
+- Opções adicionais, como abrir todas as DMs (com os amigos) e apagar as mensagens
 
-- Node.js instalado no ambiente de desenvolvimento.
+O código também apresenta atualizações de status e um menu para escolher entre as diferentes funções. É possível personalizar o código para criar um bot com as funcionalidades mais adequadas às suas necessidades.
 
-### Instalação
+### Bibliotecas Utilizadas
 
-1. Clone este repositório em seu computador.
-2. No diretório raiz do projeto, execute o comando `npm install` para instalar as dependências.
+O código usa as seguintes bibliotecas:
 
-### Configuração
+- `discord.js-selfbot-v13`: Biblioteca que permite conectar ao Discord com uma conta de usuário.
+- `inquirer`: Biblioteca para criar menus interativos no console.
+- `axios`: Biblioteca para fazer requisições HTTP.
+- `figlet`: Biblioteca para converter texto simples em texto em ASCII art.
 
-Antes de executar o projeto, é necessário configurar o arquivo `config.js`. Siga os passos abaixo:
+### Como Usar
 
-1. Abra o arquivo `config.json` e edite conforme esta comentado.
+1. Clonar este repositório
+2. Instalar as dependências usando `npm install`
+3. Criar um arquivo `config.json` na raiz, com o seguinte formato:
+   ```json
+   {
+     "token": "SEU_TOKEN_DE_DISCORD_AQUI",
+     "ativado": true
+   }
+   ```
+4. Substituir `SEU_TOKEN_DE_DISCORD_AQUI` pelo token da sua conta do Discord.
+5. Executar o bot com `node .`
 
-### Utilização
+### Funções Principais
 
-1. No diretório raiz do projeto, execute o comando `node .` para iniciar o bot.
-2. O bot se conectará à sua conta do Discord e estará pronto para receber comandos.
+#### Limpar Mensagens
 
-### Funcionalidades
+- `[+] Abrir todas as DMs e apagar`: Abre todas as DMs (com os seus amigos) e apaga as mensagens.
+- `[+] Apagar mensagens das DMs abertas`: Apaga as mensagens das DMs abertas.
+- `[+] Apagar mensagens de um canal/usuário`: Apaga as mensagens de um canal ou usuário específico.
 
-O bot possui as seguintes funcionalidades:
+#### Remover Amigos
 
-- Renderização de Página: Renderiza a página principal do bot com as informações dos usuários, servidor e configurações.
+- `[+] Remover todos os amigos`: Remove todos os amigos.
+- `[+] Remover pedidos de amizade`: Remove todos os pedidos de amizade pendentes.
 
-### Futuras Melhorias
+#### Anti-DM
 
-- Adição de sistema de configuração usando a API do OAuth do Discord.
-- Melhoria no layout da página principal.
+- `[+] Anti-DM`: Sai sozinho da DM assim que adicionado.
 
 ### Contribuições
 
 Contribuições e sugestões são sempre bem-vindas! Sinta-se à vontade para enviar um pull request ou abrir uma issue com sugestões de novas funcionalidades ou melhorias no código existente.
 
-### Observação
-
-É necessário baixar uma música, renomeá-la para "musica.mp3" e adicioná-la ao diretório "public/musica/" para que o bot possa reproduzi-la corretamente.
-
-![Exemplo do Bot](https://i.imgur.com/HDY5fWX.png)
+![exemplo](https://i.imgur.com/ZOshG65.png)
