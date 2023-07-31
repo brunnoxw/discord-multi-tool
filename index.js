@@ -510,23 +510,26 @@ function get_ultima_mensagem(id) {
     .then(messages => messages.first().id);
 }
 
-async function all_mensagens(id, before) {
+async function all_mensagens(id) {
   try {
-    const canal = await client.channels.fetch(id);
-    const mensagens = await canal.messages.fetch({ limit: 100, before });
+    const mensagens = await fetch_msgs_save(id);
 
-    let proximaMensagemID = '';
+    let historicoMensagens = [];
 
-    mensagens.each(mensagem => {
+    mensagens.forEach(mensagem => {
       const mensagemAtual = {
         conteudo: mensagem.content,
         autor: mensagem.author.tag,
         avatar: mensagem.author.displayAvatarURL({ format: 'png', dynamic: true }),
         horario: mensagem.createdTimestamp,
-        imagens: mensagem.attachments.map(anexo => anexo.url),
+        imagens: mensagem.attachments.filter(anexo => ['jpg', 'jpeg', 'png', 'gif'].includes(anexo.url.split('.').pop().toLowerCase())).map(anexo => anexo.url),
+        audios: mensagem.attachments.filter(anexo => ['mp3', 'ogg', 'wav'].includes(anexo.url.split('.').pop().toLowerCase())).map(anexo => anexo.url),
+        call: (mensagem.type === 'CALL'),
         usuarioReferenciado: null,
         avatarUsuarioReferenciado: null
       };
+	  
+	  fs.appendFileSync('./log.txt', JSON.stringify(mensagemAtual) + '\n')
 
       if (mensagem.reference) {
         const mensagemReferenciada = mensagem.reference.resolved;
@@ -537,144 +540,140 @@ async function all_mensagens(id, before) {
       }
 
       historicoMensagens.push(mensagemAtual);
-
-      proximaMensagemID = mensagem.id;
     });
 
-    if (proximaMensagemID !== '') {
-      ++contadorRecursao;
-      await all_mensagens(id, proximaMensagemID);
-    } else {
-      historicoMensagens.reverse();
-      const html = gerar_html(historicoMensagens);
+    historicoMensagens.reverse();
+    const html = gerar_html(historicoMensagens);
 
-      if (!fs.existsSync('./saida')) {
-        fs.mkdirSync('./saida', { recursive: true });
+    if (!fs.existsSync('./saida')) {
+      fs.mkdirSync('./saida', { recursive: true });
+    }
+
+    try {
+      if (fs.existsSync(`./saida/${id}.html`)) {
+        fs.unlinkSync(`./saida/${id}.html`);
       }
 
-      try {
-        if (fs.existsSync(`./saida/${id}.html`)) {
-          fs.unlinkSync(`./saida/${id}.html`);
-        }
-
-        fs.writeFileSync(`./saida/${id}.html`, html);
-        historicoMensagens = []
-        open(`./saida/${id}.html`);
-        console.log(colors.green('[=] arquivo salvo com sucesso, aguarde 5 segundos para voltar ao inicio...'));
-      } catch (err) {
-        console.error('Erro ao gravar o arquivo:', err);
-      }
-
-
+      fs.writeFileSync(`./saida/${id}.html`, html);
+	  open(`./saida/${id}.html`);
+      console.log(colors.green('[=] arquivo salvo com sucesso, aguarde 5 segundos para voltar ao inicio...'));
+    } catch (err) {
+      console.error('Erro ao gravar o arquivo:', err);
     }
   } catch (err) {
     console.log(err);
   }
-
 }
 
 function gerar_html(messages) {
   let html = `
-	<!DOCTYPE html>
-	<html>
-	<head>
-	  <title>147 dms</title>
-	  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
-	  <style>
-		@font-face{
-			font-family: 'Whitney';
-			src:url('https://discordapp.com/assets/6c6374bad0b0b6d204d8d6dc4a18d820.woff');
-			font-weight:300
-		}
-		@font-face{
-			font-family: 'Whitney';
-			src:url('https://discordapp.com/assets/e8acd7d9bf6207f99350ca9f9e23b168.woff');
-			font-weight:400
-		}
-		@font-face{
-			font-family: 'Whitney';
-			src:url('https://discordapp.com/assets/3bdef1251a424500c1b3a78dea9b7e57.woff');
-			font-weight:500
-		}
-		@font-face{
-			font-family: 'Whitney';
-			src: url('https://discordapp.com/assets/be0060dafb7a0e31d2a1ca17c0708636.woff');
-			font-weight:600
-		}
-		@font-face{
-		  font-family: 'Whitney';
-		  src:url('https://discordapp.com/assets/8e12fb4f14d9c4592eb8ec9f22337b04.woff');
-		  font-weight:700
-		}
-		.transcricao{
-		  font-family:'Whitney',"Helvetica Neue",Helvetica,Arial,sans-serif;
-		  font-size:17px
-		}
-		.transcricao img{
-		  object-fit:contain
-		}
-		.transcricao .grupo-mensagem{
-		  display:grid;
-		  margin:0 .6em;
-		  padding:.9em 0;
-		  border-top:1px solid;
-		  grid-template-columns:auto 1fr
-		}
-		.transcricao .avatar-autor-container{
-		  grid-column:1;
-		  width:40px;
-		  height:40px
-		}
-		.transcricao .avatar-autor{
-		  border-radius:50%;
-		  height:40px;
-		  width:40px
-		}
-		.transcricao .mensagens{
-		  grid-column:2;
-		  margin-left:1.2em;
-		  min-width:50%
-		}
-		.transcricao .nome-autor{
-		  font-weight:500
-		}
-		.transcricao .timestamp{
-		  margin-left:.3em;
-		  font-size:.75em
-		}
-		.transcricao .mensagem{
-		  padding:.1em .3em;
-		  margin:0 -.3em;
-		  background-color:transparent;
-		  transition:background-color 1s ease
-		}
-		.transcricao .conteudo{
-		  font-size:.95em;
-		  word-wrap:break-word
-		}
-		.transcricao.escura.bg{
-		  background-color:#36393e;
-		  color:#dcddde
-		}
-		.transcricao.escura .grupo-mensagem{
-		  border-color:rgba(255,255,255,.1)
-		}
-		.transcricao.escura .nome-autor{
-		  color:#fff
-		}
-		.transcricao.escura .timestamp{
-		  color:rgba(255,255,255,.2)
-		}
-    .transcricao .imagens img {
-      max-width: 100px;
-      height: auto;
-    }
-	  </style>
-	</head>
-	<body class="transcricao escura bg">
-	  <h1>147 dm saver</h1>
-	  <ul>
-	`;
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>147 dms</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+      <style>
+        @font-face{
+          font-family: 'Whitney';
+          src:url('https://discordapp.com/assets/6c6374bad0b0b6d204d8d6dc4a18d820.woff');
+          font-weight:300
+        }
+        @font-face{
+          font-family: 'Whitney';
+          src:url('https://discordapp.com/assets/e8acd7d9bf6207f99350ca9f9e23b168.woff');
+          font-weight:400
+        }
+        @font-face{
+          font-family: 'Whitney';
+          src:url('https://discordapp.com/assets/3bdef1251a424500c1b3a78dea9b7e57.woff');
+          font-weight:500
+        }
+        @font-face{
+          font-family: 'Whitney';
+          src:url('https://discordapp.com/assets/be0060dafb7a0e31d2a1ca17c0708636.woff');
+          font-weight:600
+        }
+        @font-face{
+          font-family: 'Whitney';
+          src:url('https://discordapp.com/assets/8e12fb4f14d9c4592eb8ec9f22337b04.woff');
+          font-weight:700
+        }
+        .transcricao{
+          font-family:'Whitney',"Helvetica Neue",Helvetica,Arial,sans-serif;
+          font-size:17px
+        }
+        .transcricao img{
+          object-fit:contain
+        }
+        .transcricao .grupo-mensagem{
+          display:grid;
+          margin:0 .6em;
+          padding:.9em 0;
+          border-top:1px solid;
+          grid-template-columns:auto 1fr
+        }
+        .transcricao .avatar-autor-container{
+          grid-column:1;
+          width:40px;
+          height:40px
+        }
+        .transcricao .avatar-autor{
+          border-radius:50%;
+          height:40px;
+          width:40px
+        }
+        .transcricao .mensagens{
+          grid-column:2;
+          margin-left:1.2em;
+          min-width:50%
+        }
+        .transcricao .nome-autor{
+          font-weight:500
+        }
+        .transcricao .timestamp{
+          margin-left:.3em;
+          font-size:.75em
+        }
+         .transcricao .mensagem {
+    padding: .1em .3em;
+    margin: 0 -.3em;
+    background-color: transparent;
+    transition: background-color 1s ease;
+
+    /* Alteração: Adicionar as seguintes propriedades */
+    display: flex;
+    flex-direction: column;
+  }	
+        .transcricao .conteudo{
+          font-size:.95em;
+          word-wrap:break-word
+        }
+        .transcricao.escura.bg{
+          background-color:#36393e;
+          color:#dcddde
+        }
+        .transcricao.escura .grupo-mensagem{
+          border-color:rgba(255,255,255,.1)
+        }
+        .transcricao.escura .nome-autor{
+          color:#fff
+        }
+        .transcricao.escura .timestamp{
+          color:rgba(255,255,255,.2)
+        }
+        .transcricao .imagens img {
+          max-width: 100px;
+          height: auto;
+        }
+        .transcricao .audios audio {
+          margin-top: 5px;
+        }
+      </style>
+    </head>
+    <body class="transcricao escura bg">
+      <h1>147 dm saver</h1>
+      <ul>
+  `;
 
   messages.forEach(mensagem => {
     const timestampFormatado = new Date(mensagem.horario).toLocaleString();
@@ -682,51 +681,97 @@ function gerar_html(messages) {
     const autorFormatado = escapeHTML(mensagem.autor);
     const usuarioReferenciadoFormatado = mensagem.usuarioReferenciado ? escapeHTML(mensagem.usuarioReferenciado) : null;
     let tagsDeImagem = '';
+    let tagsDeAudio = '';
+	let tagsDeVideo = '';
+	
+	if (mensagem.videos && mensagem.videos.length > 0) {
+      tagsDeVideo = `
+        <div class="videos" style="margin-top: 5px;"> <!-- You can adjust the margin as per your layout -->
+          ${mensagem.videos.map(video => `<video controls style="max-width: 550px; height: 309px;"><source src="${escapeHTML(video)}"></video>`).join('')}
+        </div>
+      `;
+    }
 
     if (mensagem.imagens && mensagem.imagens.length > 0) {
       tagsDeImagem = `
-        <div class="imagens">
-          ${mensagem.imagens.map(imagem => `<img src="${escapeHTML(imagem)}" alt="Imagem da Mensagem" style="max-width: 80%; height: auto;">`).join('')}
+        <div class="imagens" style="margin-top: 5px;">
+          ${mensagem.imagens.map(imagem => `<a href="${escapeHTML(imagem)}" target="_blank"><img src="${escapeHTML(imagem)}" style="max-width: 550px; height: 309px;" alt="Imagem da Mensagem" style="max-width: 100%; height: auto; margin-bottom: 5px;"></a>`).join('')}
+        </div>
+      `;
+    }
+
+	
+    if (mensagem.audios && mensagem.audios.length > 0) {
+      tagsDeAudio = `
+        <div class="audios">
+          ${mensagem.audios.map(audio => `<audio controls><source src="${escapeHTML(audio)}"></audio>`).join('')}
         </div>
       `;
     }
 
     const tagDoAvatarDoAutor = `
-		<div class="avatar-autor-container">
-		  <img class="avatar-autor" src="${escapeHTML(mensagem.avatar)}">
-		</div>
-	  `;
-    const tagDoAvatarDoUsuarioReferenciado = mensagem.avatarDoUsuarioReferenciado ? `
-		<div class="avatar-usuario-referenciado-container">
-		  <img class="avatar-usuario-referenciado" src="${escapeHTML(mensagem.avatarDoUsuarioReferenciado)}">
-		</div>
-	  ` : '';
-
+      <div class="avatar-autor-container">
+        <img class="avatar-autor" src="${escapeHTML(mensagem.avatar)}">
+      </div>
+    `;
+    const tagDoAvatarDoUsuarioReferenciado = mensagem.avatarUsuarioReferenciado ? `
+      <div class="avatar-usuario-referenciado-container">
+        <img class="avatar-usuario-referenciado" src="${escapeHTML(mensagem.avatarUsuarioReferenciado)}">
+      </div>
+    ` : '';
+		
+	const linkazul = conteudoFormatado.replace(/(?:https?|ftp):\/\/[\n\S]+/g, '<a class="link-azul" href="$&" target="_blank">$&</a>');
+    const conteudoFinal = mensagem.call
+      ? `<img src="https://i.imgur.com/zJ4FHTM.png"> ${autorFormatado} iniciou uma chamada`
+      : linkazul;
+		  
     html += `
-		<div class="grupo-mensagem" style="border-top:0px; ">
-		  ${tagDoAvatarDoAutor}
-		  <div class="mensagens">
-			<span class="nome-autor">${autorFormatado}</span>
-			<span class="timestamp">${timestampFormatado}</span>
-			<div class="mensagem">
-			  <div class="conteudo">
-				${conteudoFormatado}
-			  </div>
-			  ${tagsDeImagem}
-			</div>
-		  </div>
-		</div>
-	  `;
+      <div class="grupo-mensagem" style="border-top:0px; ">
+        ${tagDoAvatarDoAutor}
+        <div class="mensagens">
+          <span class="nome-autor">${autorFormatado}</span>
+          <span class="timestamp">${timestampFormatado}</span>
+          <div class="mensagem">
+            <div class="conteudo">
+              ${conteudoFinal}
+            </div>
+            ${tagsDeImagem}
+            ${tagsDeAudio}
+            ${tagsDeVideo}
+          </div>
+        </div>
+      </div>
+    `;
   });
 
   html += `
-	  </ul>
-	</body>
-	</html>
-	`;
+      </ul>
+    </body>
+    </html>
+  `;
 
   return html;
+}
 
+async function fetch_msgs_save(canal) {
+  const canall = client.channels.cache.get(canal);
+  if (!canall) return [];
+  let ultimoid;
+  let messages = [];
+
+  while (true) {
+    const fetched = await canall.messages.fetch({
+      limit: 100,
+      ...(ultimoid && { before: ultimoid }),
+    });
+
+    if (fetched.size === 0) {
+      return messages;
+    }
+    
+    messages = messages.concat(Array.from(fetched.values()));
+    ultimoid = fetched.lastKey();
+  }
 }
 
 function escapeHTML(content) {
