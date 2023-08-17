@@ -1,6 +1,6 @@
 {
   "name": "tool",
-  "version": "1.2.1",
+  "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,10 @@
     "colors": "^1.4.0",
     "discord.js-selfbot-v13": "^2.13.6",
     "figlet": "^1.5.2",
+    "git-clone": "^0.2.0",
     "inquirer": "^8.0.0",
-    "open": "^8.0.6"
+    "open": "^8.0.6",
+    "rimraf": "^5.0.1",
+    "simple-git": "^3.19.1"
   }
 }

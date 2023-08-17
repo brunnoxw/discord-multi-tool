@@ -4,11 +4,10 @@ var colors = require('colors');
 const client = new Client({ checkUpdate: false });
 const axios = require('axios');
 const fs = require('fs');
+const readline = require('readline');
+
 const inquirer = require('inquirer');
 const open = require('open')
-var historicoMensagens = []
-var contadorRecursao = 0
-process.title = '147 Multi-tool | by byy'
 
 const per = require('readline').createInterface({
   input: process.stdin
@@ -19,16 +18,17 @@ client.on('ready', async () => {
   async function loop() {
     console.clear()
     figlet.text(client.user.username, {
-      font: 'Bloody'
+      font: 'ivrit'
       ,
-    }, function (err, data) {
+    }, async function (err, data) {
       if (err) {
         console.log('algum erro no input');
         console.dir(err);
         return;
       }
       console.log(colors.red(data));
-      console.log(colors.red('         feito por byy\n\n'))
+      console.log(colors.red(`${await checkUpdate()}\n\n`))
+      process.title = `147 Multi-tool | ${await checkUpdate()}`
 
       const options = [{
         name: '[+] Abrir todas as DMs e apagar (amigos)'
@@ -137,11 +137,11 @@ client.on('ready', async () => {
             }
           ]).then(async firstAnswers => {
             console.clear();
-
+        
             if (firstAnswers.option === '[x] Cancelar') {
               return console.log(colors.red(`[x] operação cancelada com sucesso, voltando ao inicio, aguarde 5 segundos...`)), esperarkk('');
             }
-
+        
             console.clear();
             inquirer.prompt([
               {
@@ -149,22 +149,22 @@ client.on('ready', async () => {
                 name: 'id',
                 message: '[=] Insira o ID do canal/usuário:',
                 when: function (answers) {
-                  return answers.option !== 'Cancelar';
+                  return answers.option !== '[x] Cancelar';
                 }
               }
             ]).then(async secondAnswers => {
-              console.clear()
+              console.clear();
               let contador = 1;
               let nome;
               var id = secondAnswers.id;
-
+        
               let canal = await client.channels.cache.get(id);
               if (!canal) {
                 var usr = await client.users.fetch(id).catch(err => { });
                 if (!usr) {
                   return console.log(colors.red('[x] O ID fornecido é inválido')), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
                 }
-
+        
                 await usr?.createDM().then(dmchannel => {
                   id = dmchannel.id;
                   nome = usr.username;
@@ -178,25 +178,66 @@ client.on('ready', async () => {
                   nome = (canal.type == 'GROUP_DM') ? 'DM' : canal.name;
                 }
               }
-
+        
               if (firstAnswers.option === '[x] Apenas apagar DM com o usuário') {
-                var todas_msg = await fetch_msgs(id);
-                if (todas_msg.length === 0) {
-                  return console.log(colors.red(`${nome == 'DM' ? `[x] Sem mensagens nessa DM` : `[x] Não encontrei nenhuma mensagem sua com ${nome}`}`)), await fechar_dm(id), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
-                }
-                for (var nuts of todas_msg) {
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                  await nuts.delete().then(kk => {
-                    console.clear();
-                    console.log(colors.green(`${nome == 'DM' ? `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} em uma ${nome}` : `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} mensagens com o usuário ${nome}`}`));
-                    contador++;
-                  }).catch((e) => { console.log(e); });
-                }
-                await fechar_dm(id);
-                esperarkk(`\n\n[!] Terminei de limpar todas as DMs, voltando para o início, aguarde 5 segundos...`);
+                inquirer.prompt([
+                  {
+                    type: 'list',
+                    name: 'mode',
+                    message: '[+] Selecione o modo:',
+                    choices: ['[+] Modo bomba (mais rápido, porém mais instável)', '[+] Modo normal (mais estável, porém mais lento)']
+                  }
+                ]).then(async modeAnswer => {
+                  if (modeAnswer.mode === '[+] Modo bomba (mais rápido, porém mais instável)') {
+                    const msg_grupo = 5;
+                    const messages = await fetch_msgs(id);
+                  if (messages.length === 0) {
+                      return console.clear(), console.log(colors.red(`${nome == 'DM' ? `[x] Sem mensagens nessa DM` : `[x] Não encontrei nenhuma mensagem sua com ${nome}`}`)), await fechar_dm(id), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
+                    }
+                  
+                    for (let i = 0; i < messages.length; i += msg_grupo) {
+                      const grupo = messages.slice(i, i + msg_grupo);
+                  
+                      for (const message of grupo) {
+                        await message.delete().then(() => {
+                          contador++; 
+                          console.clear();
+                          console.log(colors.green(`${nome == 'DM' ? `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} em uma ${nome}` : `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} mensagens com o usuário ${nome}`}`));
+                        }).catch((e) => {
+                          console.log(e);
+                        });
+                      }
+                  
+                      if (i + msg_grupo < messages.length) {
+                        await new Promise(resolve => setTimeout(resolve, 4000)); 
+                      }
+                    }
+                  
+                    await fechar_dm(id);
+                    esperarkk(`\n\n[!] Terminei de limpar todas as DMs, voltando para o início, aguarde 5 segundos...`);
+                  } else if (modeAnswer.mode === '[+] Modo normal (mais estável, porém mais lento)') {
+                    const delaykk = 1000; 
+                    const todas_msg = await fetch_msgs(id);
+                    if (todas_msg.length === 0) {
+                      return console.clear(), console.log(colors.red(`${nome == 'DM' ? `[x] Sem mensagens nessa DM` : `[x] Não encontrei nenhuma mensagem sua com ${nome}`}`)), await fechar_dm(id), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
+                    }
+                    for (const message of todas_msg) {
+                      await new Promise(resolve => setTimeout(resolve, delaykk));
+                      await message.delete().then(kk => {
+                        contador++; 
+                        console.clear();
+                        console.log(colors.green(`${nome == 'DM' ? `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} em uma ${nome}` : `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} mensagens com o usuário ${nome}`}`));
+                      }).catch((e) => { console.log(e); });
+                    }
+        
+                    await fechar_dm(id);
+                    esperarkk(`\n\n[!] Terminei de limpar a DM, voltando para o início, aguarde 5 segundos...`);
+                  }
+                })
               } else if (firstAnswers.option === '[x] Salvar DM') {
                 var id = secondAnswers.id
                 var canall = client.channels.cache.get(id)
+              
                 if (!canall) {
                   var usr = await client.users.fetch(id).catch(err => { });
                   if (!usr) {
@@ -217,6 +258,7 @@ client.on('ready', async () => {
 
                 }
                 const id_ult = await get_ultima_mensagem(id);
+                if(!id_ult) return console.clear(), console.log(colors.red(`${nome == 'DM' ? `[x] Sem mensagens nessa DM` : `[x] Não encontrei nenhuma mensagem sua com ${nome}`}`)), await fechar_dm(id), esperarkk(`\n\n[!] Voltando ao início, aguarde 5 segundos...`);
                 await all_mensagens(id, id_ult);
                 esperarkk(``)
               } else {
@@ -506,9 +548,26 @@ function pegar_status() {
 
 function get_ultima_mensagem(id) {
   return client.channels.fetch(id)
-    .then(channel => channel.messages.fetch({ limit: 1 }))
-    .then(messages => messages.first().id);
+    .then(channel => {
+      if (!channel) {
+        throw new Error('Canal não encontrado.');
+      }
+      return channel.messages.fetch({ limit: 1 });
+    })
+    .then(messages => {
+      if (messages.size > 0) {
+        return messages.first().id;
+      } else {
+        console.log('Nenhuma mensagem encontrada no canal.');
+        return null; 
+      }
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      throw error;
+    });
 }
+
 
 async function all_mensagens(id) {
   try {
@@ -529,7 +588,6 @@ async function all_mensagens(id) {
         avatarUsuarioReferenciado: null
       };
 	  
-	  fs.appendFileSync('./log.txt', JSON.stringify(mensagemAtual) + '\n')
 
       if (mensagem.reference) {
         const mensagemReferenciada = mensagem.reference.resolved;
@@ -572,6 +630,9 @@ function gerar_html(messages) {
     <head>
       <title>147 dms</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.28.0/themes/prism.css">
+      <script src="https://cdn.jsdelivr.net/npm/prismjs@1.28.0/prism.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/prismjs@1.28.0/components/prism-javascript.min.js"></script>
       <style>
         @font-face{
           font-family: 'Whitney';
@@ -668,6 +729,164 @@ function gerar_html(messages) {
         .transcricao .audios audio {
           margin-top: 5px;
         }
+        code[class*="language-"],
+pre[class*="language-"] {
+  -moz-tab-size: 2;
+  -o-tab-size: 2;
+  tab-size: 2;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+  white-space: pre;
+  white-space: pre-wrap;
+  word-wrap: normal;
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-size: 14px;
+  color: #76d9e6;
+  text-shadow: none;
+}
+
+pre > code[class*="language-"] {
+  font-size: 1em;
+}
+
+pre[class*="language-"],
+:not(pre) > code[class*="language-"] {
+  background: #2a2a2a;
+}
+
+pre[class*="language-"] {
+  padding: 15px;
+
+  overflow: auto;
+  position: relative;
+}
+
+pre[class*="language-"] code {
+  white-space: pre;
+  display: block;
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: 0.15em 0.2em 0.05em;
+  border-radius: .3em;
+  border: 0.13em solid #7a6652;
+  box-shadow: 1px 1px 0.3em -0.1em #000 inset;
+}
+
+.token.namespace {
+  opacity: .7;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6f705e;
+}
+
+.token.operator,
+.token.boolean,
+.token.number {
+  color: #a77afe;
+}
+
+.token.attr-name,
+.token.string {
+  color: #e6d06c;
+}
+
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #e6d06c;
+}
+
+.token.selector,
+.token.inserted {
+  color: #a6e22d;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword,
+.token.important,
+.token.deleted {
+  color: #ef3b7d;
+}
+
+.token.regex,
+.token.statement {
+  color: #76d9e6;
+}
+
+.token.placeholder,
+.token.variable {
+  color: #fff;
+}
+
+.token.important,
+.token.statement,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.punctuation {
+  color: #bebec5;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+code.language-markup {
+  color: #f9f9f9;
+}
+
+code.language-markup .token.tag {
+  color: #ef3b7d;
+}
+
+code.language-markup .token.attr-name {
+  color: #a6e22d;
+}
+
+code.language-markup .token.attr-value {
+  color: #e6d06c;
+}
+
+code.language-markup .token.style,
+code.language-markup .token.script {
+  color: #76d9e6;
+}
+
+code.language-markup .token.script .token.keyword {
+  color: #76d9e6;
+}
+
+.line-highlight.line-highlight {
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.line-highlight.line-highlight:before,
+.line-highlight.line-highlight[data-end]:after {
+  padding: 0.2em 0.5em;
+  background-color: rgba(255, 255, 255, 0.4);
+  color: black;
+  height: 1em;
+  line-height: 1em;
+  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);
+}
+.token.operator {
+  background: none;
+}
       </style>
     </head>
     <body class="transcricao escura bg">
@@ -683,7 +902,8 @@ function gerar_html(messages) {
     let tagsDeImagem = '';
     let tagsDeAudio = '';
 	let tagsDeVideo = '';
-	
+  const conteudoFormatadoComCodigo = conteudoFormatado.replace(/```([\s\S]*?)```/g, '<pre><code class="language-javascript">$1</code></pre>');
+
 	if (mensagem.videos && mensagem.videos.length > 0) {
       tagsDeVideo = `
         <div class="videos" style="margin-top: 5px;"> <!-- You can adjust the margin as per your layout -->
@@ -720,7 +940,7 @@ function gerar_html(messages) {
       </div>
     ` : '';
 		
-	const linkazul = conteudoFormatado.replace(/(?:https?|ftp):\/\/[\n\S]+/g, '<a class="link-azul" href="$&" target="_blank">$&</a>');
+	const linkazul = conteudoFormatadoComCodigo.replace(/(?:https?|ftp):\/\/[\n\S]+/g, '<a class="link-azul" href="$&" target="_blank">$&</a>');
     const conteudoFinal = mensagem.call
       ? `<img src="https://i.imgur.com/zJ4FHTM.png"> ${autorFormatado} iniciou uma chamada`
       : linkazul;
@@ -809,3 +1029,38 @@ client.login(require('./config.json').token).catch(() => {
     })
   })
 })
+
+
+async function checkUpdate() {
+  const repoOwner = 'byy0x';
+  const repoName = 'discord-multi-tool';
+
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/releases`);
+    const releases = await response.json();
+
+    if (releases.length === 0) {
+      console.log('Nenhuma release encontrada para este repositório.');
+      return;
+    }
+
+    const ultima_att = releases[0];
+    const versao_git = ultima_att.tag_name;
+
+    const packageJson = require('./package.json');
+    var versao_projeto = packageJson.version;
+    var ats;
+    if (versao_projeto !== versao_git) {
+     ats = 'há uma atualização disponível, feche o prompt atual e abra o atualizar.bat'
+
+    } else {
+      ats = `           v${versao_git}`
+    }
+    return ats
+  } catch (error) {
+   return ats = 'erro de comunicação com o github'
+  }
+  }
+
+
+
