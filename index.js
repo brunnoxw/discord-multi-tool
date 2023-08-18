@@ -202,7 +202,7 @@ client.on('ready', async () => {
                         await message.delete().then(() => {
                           contador++; 
                           console.clear();
-                          console.log(colors.green(`${nome == 'DM' ? `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} em uma ${nome}` : `[=] Foram apagadas o total de ${contador} de ${todas_msg.length} mensagens com o usuário ${nome}`}`));
+                          console.log(colors.green(`${nome == 'DM' ? `[=] Foram apagadas o total de ${contador} de ${messages.length} em uma ${nome}` : `[=] Foram apagadas o total de ${contador} de ${messages.length} mensagens com o usuário ${nome}`}`));
                         }).catch((e) => {
                           console.log(e);
                         });
