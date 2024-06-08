@@ -1032,7 +1032,7 @@ client.login(require('./config.json').token).catch(() => {
 
 
 async function checkUpdate() {
-  const repoOwner = 'byy0x';
+  const repoOwner = 'brunnoxw';
   const repoName = 'discord-multi-tool';
 
   try {
