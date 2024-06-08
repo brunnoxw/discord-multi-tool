@@ -21,7 +21,7 @@ async function updatePackage(versao) {
 }
 
 async function procurarAtt() {
-    const usuario = 'byy0x'
+    const usuario = 'brunnoxw'
     const nome_projeto = 'discord-multi-tool'
 
     try {
